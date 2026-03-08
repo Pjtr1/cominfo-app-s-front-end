@@ -1,41 +1,37 @@
+import { router } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
-// 👇 ADD
-import { useNavigation } from "@react-navigation/native";
-import { router } from "expo-router";
 
-export default function LoginScreen() {
+export default function SignUpScreen() {
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // 👇 ADD
   const [loading, setLoading] = useState(false);
 
-  const navigation = useNavigation();
-
-  // 👇 ADD: login handler
-  const handleLogin = async () => {
-    if (!username || !password) {
-      Alert.alert("Error", "Please enter email and password");
+  const handleSignup = async () => {
+    if (!username || !email || !password) {
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch("https://cominfo-api-server.onrender.com/login", {
+      const response = await fetch("https://cominfo-api-server.onrender.com/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: username, // will rename later
+          username: username,
+          email: email,
           password: password,
         }),
       });
@@ -43,22 +39,16 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (!response.ok) {
-        // API returned error (wrong email/password)
-        Alert.alert("Login Failed", data.message || "Wrong email or password");
+        Alert.alert("Signup Failed", data.message || "Something went wrong");
         return;
       }
 
-      // ✅ success: API returns row id & email
-      console.log("Logged in user:", data);
+      console.log("New user:", data);
 
-      // 👇 navigate to placeholder screen
       router.push({
         pathname: "/homeplaceholder",
-        params: {
-          id: data.id,
-          email: data.email,
-        },
       });
+
     } catch (error) {
       Alert.alert("Error", "Something went wrong. Please try again.");
       console.error(error);
@@ -69,23 +59,31 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Title */}
       <Text style={styles.title}>KMITL CAFETERIAS</Text>
 
-      {/* Card */}
       <View style={styles.card}>
-        <Text style={styles.header}>เข้าสู่ระบบ</Text>
+        <Text style={styles.header}>Create Account</Text>
         <Text style={styles.subHeader}>
-          Welcome back to KMITL Food Services
+          Sign up for KMITL Food Services
         </Text>
 
         {/* Username */}
-        <Text style={styles.label}>Student ID / Username</Text>
+        <Text style={styles.label}>Username</Text>
         <TextInput
           style={styles.input}
-          placeholder="e.g. 64012345"
+          placeholder="Choose a username"
           value={username}
           onChangeText={setUsername}
+          autoCapitalize="none"
+        />
+
+        {/* Email */}
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmail}
           autoCapitalize="none"
         />
 
@@ -93,35 +91,33 @@ export default function LoginScreen() {
         <Text style={styles.label}>Password</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your password"
+          placeholder="Create a password"
           secureTextEntry
           value={password}
           onChangeText={setPassword}
           autoCapitalize="none"
         />
 
-        {/* Forgot password */}
-        <TouchableOpacity>
-          <Text style={styles.forgot}>Forgot Password?</Text>
-        </TouchableOpacity>
-
-        {/* Login button */}
+        {/* Sign Up button */}
         <TouchableOpacity
           style={styles.button}
-          onPress={handleLogin}
+          onPress={handleSignup}
           disabled={loading}
         >
           <Text style={styles.buttonText}>
-            {loading ? "Logging in..." : "Login →"}
+            {loading ? "Creating Account..." : "Sign Up →"}
           </Text>
         </TouchableOpacity>
 
-        {/* Signup */}
-        <TouchableOpacity onPress={() => router.push("/signup")}>
-          <Text style={styles.signup}>
-            Don't have an account? <Text style={styles.signupLink}>Sign Up</Text>
-          </Text>
-        </TouchableOpacity> 
+        {/* Login link*/}
+        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+            <Text style={styles.signup}>Already have an account? </Text>
+
+            <TouchableOpacity onPress={() => router.push("/")}>
+                <Text style={styles.signupLink}>Login</Text>
+            </TouchableOpacity>
+        </View>
+
       </View>
     </View>
   );
@@ -165,11 +161,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#f2f2f2",
     borderRadius: 12,
     padding: 14,
-  },
-  forgot: {
-    color: "#f57c00",
-    textAlign: "right",
-    marginTop: 10,
   },
   button: {
     backgroundColor: "#f57c00",
