@@ -52,13 +52,7 @@ export default function LoginScreen() {
       console.log("Logged in user:", data);
 
       // 👇 navigate to placeholder screen
-      router.push({
-        pathname: "/homeplaceholder",
-        params: {
-          id: data.id,
-          email: data.email,
-        },
-      });
+      router.replace("/home");
     } catch (error) {
       Alert.alert("Error", "Something went wrong. Please try again.");
       console.error(error);
@@ -117,11 +111,14 @@ export default function LoginScreen() {
         </TouchableOpacity>
 
         {/* Signup */}
-        <TouchableOpacity onPress={() => router.push("/signup")}>
-          <Text style={styles.signup}>
-            Don't have an account? <Text style={styles.signupLink}>Sign Up</Text>
-          </Text>
-        </TouchableOpacity> 
+        <View style={{ flexDirection: "row", justifyContent: "center" }}>
+          <Text style={styles.signup}>Don't have an account? </Text>
+        
+          <TouchableOpacity onPress={() => router.push("/signup")}>
+            <Text style={styles.signupLink}>Sign up</Text>
+          </TouchableOpacity>
+        </View>
+
       </View>
     </View>
   );
@@ -136,7 +133,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 30,
     fontWeight: "600",
     color: "#fff",
     marginBottom: 20,
@@ -191,5 +188,6 @@ const styles = StyleSheet.create({
   signupLink: {
     color: "#f57c00",
     fontWeight: "600",
+    marginTop: 16,
   },
 });

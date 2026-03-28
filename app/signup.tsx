@@ -1,12 +1,12 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export default function SignUpScreen() {
@@ -45,9 +45,7 @@ export default function SignUpScreen() {
 
       console.log("New user:", data);
 
-      router.push({
-        pathname: "/homeplaceholder",
-      });
+      router.replace("/home");
 
     } catch (error) {
       Alert.alert("Error", "Something went wrong. Please try again.");
@@ -111,10 +109,10 @@ export default function SignUpScreen() {
 
         {/* Login link*/}
         <View style={{ flexDirection: "row", justifyContent: "center" }}>
-            <Text style={styles.signup}>Already have an account? </Text>
+            <Text style={styles.login}>Already have an account? </Text>
 
             <TouchableOpacity onPress={() => router.push("/")}>
-                <Text style={styles.signupLink}>Login</Text>
+                <Text style={styles.loginLink}>Log in</Text>
             </TouchableOpacity>
         </View>
 
@@ -132,7 +130,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 30,
     fontWeight: "600",
     color: "#fff",
     marginBottom: 20,
@@ -174,12 +172,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  signup: {
+  login: {
     textAlign: "center",
     marginTop: 16,
     color: "#555",
   },
-  signupLink: {
+  loginLink: {
+    marginTop: 16,
     color: "#f57c00",
     fontWeight: "600",
   },
