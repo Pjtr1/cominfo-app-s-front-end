@@ -8,11 +8,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useUser } from "../contexts/UserContext"; // adjust path if needed
 
 export default function SignUpScreen() {
+  const { setUser } = useUser();
+
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"customer" | "seller">("customer");
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
@@ -24,15 +28,16 @@ export default function SignUpScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch("https://cominfo-api-server.onrender.com/register", {
+      const response = await fetch("https://erratically-thermogenetic-landon.ngrok-free.dev/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: username,
-          email: email,
-          password: password,
+          username,
+          email,
+          password,
+          role, // include role in request body
         }),
       });
 
@@ -43,9 +48,20 @@ export default function SignUpScreen() {
         return;
       }
 
-      console.log("New user:", data);
+      // store user info in context
+      setUser({
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        role: data.role,
+      });
 
-      router.replace("/home");
+      // navigate based on role
+      if (data.role === "seller") {
+        router.replace("/seller");
+      } else {
+        router.replace("/customer/home");
+      }
 
     } catch (error) {
       Alert.alert("Error", "Something went wrong. Please try again.");
@@ -61,9 +77,7 @@ export default function SignUpScreen() {
 
       <View style={styles.card}>
         <Text style={styles.header}>Create Account</Text>
-        <Text style={styles.subHeader}>
-          Sign up for KMITL Food Services
-        </Text>
+        <Text style={styles.subHeader}>Sign up for KMITL Food Services</Text>
 
         {/* Username */}
         <Text style={styles.label}>Username</Text>
@@ -96,6 +110,44 @@ export default function SignUpScreen() {
           autoCapitalize="none"
         />
 
+        {/* Role picker */}
+        <Text style={styles.label}>Role</Text>
+        <View style={styles.roleContainer}>
+          <TouchableOpacity
+            style={[
+              styles.roleButton,
+              role === "customer" && styles.roleButtonSelected,
+            ]}
+            onPress={() => setRole("customer")}
+          >
+            <Text
+              style={[
+                styles.roleText,
+                role === "customer" && styles.roleTextSelected,
+              ]}
+            >
+              Customer
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.roleButton,
+              role === "seller" && styles.roleButtonSelected,
+            ]}
+            onPress={() => setRole("seller")}
+          >
+            <Text
+              style={[
+                styles.roleText,
+                role === "seller" && styles.roleTextSelected,
+              ]}
+            >
+              Seller
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Sign Up button */}
         <TouchableOpacity
           style={styles.button}
@@ -107,15 +159,13 @@ export default function SignUpScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Login link*/}
+        {/* Login link */}
         <View style={{ flexDirection: "row", justifyContent: "center" }}>
-            <Text style={styles.login}>Already have an account? </Text>
-
-            <TouchableOpacity onPress={() => router.push("/")}>
-                <Text style={styles.loginLink}>Log in</Text>
-            </TouchableOpacity>
+          <Text style={styles.login}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => router.push("/")}>
+            <Text style={styles.loginLink}>Log in</Text>
+          </TouchableOpacity>
         </View>
-
       </View>
     </View>
   );
@@ -159,6 +209,32 @@ const styles = StyleSheet.create({
     backgroundColor: "#f2f2f2",
     borderRadius: 12,
     padding: 14,
+  },
+  roleContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+  },
+  roleButton: {
+    flex: 1,
+    padding: 12,
+    marginHorizontal: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    alignItems: "center",
+  },
+  roleButtonSelected: {
+    backgroundColor: "#f57c00",
+    borderColor: "#f57c00",
+  },
+  roleText: {
+    color: "#555",
+    fontWeight: "500",
+  },
+  roleTextSelected: {
+    color: "#fff",
+    fontWeight: "700",
   },
   button: {
     backgroundColor: "#f57c00",

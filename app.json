@@ -19,8 +19,16 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.pjtr1.myApp",
+      "config": {
+    "googleMaps": {
+      "apiKey": "AIzaSyBxQRjgH6dh9YdqW966GZbagTn_4AtCyZQ"
+     }
+   },
+  "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
+    
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
@@ -43,6 +51,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9554221b-98c7-4d2e-b698-29056ecc73cd"
+      }
     }
   }
 }

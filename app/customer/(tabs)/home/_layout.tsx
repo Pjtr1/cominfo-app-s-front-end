@@ -1,12 +1,15 @@
+import * as Location from "expo-location"; // ✅ ADDED
 import { Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    FlatList,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  FlatList,
+  PanResponder,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 type Message = {
@@ -21,11 +24,88 @@ export default function HomeLayout() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null); // ✅ ADDED
+
   const slideAnim = useRef(new Animated.Value(400)).current;
 
+  // Typing dots
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
+
+  // Screen bounds
+  const { width, height } = Dimensions.get("window");
+  const BUTTON_SIZE = 60;
+  const MARGIN = 20;
+
+  const maxX = width - BUTTON_SIZE - MARGIN;
+  const maxY = height - BUTTON_SIZE - MARGIN;
+
+  // Drag state
+  const pan = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const last = useRef({ x: 0, y: 0 });
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5,
+
+      onPanResponderMove: (_, gesture) => {
+        let newX = last.current.x + gesture.dx;
+        let newY = last.current.y + gesture.dy;
+
+        // Clamp inside screen
+        newX = Math.max(-maxX, Math.min(newX, 0));
+        newY = Math.max(-maxY + 50, Math.min(newY, 30));
+
+        pan.setValue({ x: newX, y: newY });
+      },
+
+      onPanResponderRelease: (_, gesture) => {
+        let newX = last.current.x + gesture.dx;
+        let newY = last.current.y + gesture.dy;
+
+        // KEEP your original clamps
+        newX = Math.max(-maxX, Math.min(newX, 18));
+        newY = Math.max(-maxY + 50, Math.min(newY, 30));
+
+        const middleX = (-maxX + 18) / 2;
+
+        let finalX;
+
+        if (gesture.vx < -0.5) {
+          finalX = -maxX;
+        } else if (gesture.vx > 0.5) {
+          finalX = 18;
+        } else {
+          finalX = newX < middleX ? -maxX : 18;
+        }
+
+        Animated.spring(pan, {
+          toValue: { x: finalX, y: newY },
+          useNativeDriver: false,
+        }).start();
+
+        last.current = { x: finalX, y: newY };
+      },
+    })
+  ).current;
+
+  // ✅ GET USER LOCATION
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") return;
+
+      let location = await Location.getCurrentPositionAsync({});
+      setCoords({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+    })();
+  }, []);
 
   useEffect(() => {
     if (!isTyping) return;
@@ -99,7 +179,7 @@ export default function HomeLayout() {
 
     try {
       const response = await fetch(
-        "https://cominfo-api-server.onrender.com/ai/message",
+        "https://erratically-thermogenetic-landon.ngrok-free.dev/ai/message",
         {
           method: "POST",
           headers: {
@@ -107,6 +187,8 @@ export default function HomeLayout() {
           },
           body: JSON.stringify({
             message: userMessage.text,
+            latitude: coords?.latitude ?? 0,     // ✅ ADDED
+            longitude: coords?.longitude ?? 0,   // ✅ ADDED
           }),
         }
       );
@@ -134,29 +216,34 @@ export default function HomeLayout() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <Stack>
-        <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="restaurant" options={{ title: "Restaurant" }} />
-      </Stack>
+    <>
+      <Stack screenOptions={{ headerShown: false }} />
 
       {!chatOpen && (
-        <TouchableOpacity
-          onPress={openChat}
+        <Animated.View
+          {...panResponder.panHandlers}
           style={{
             position: "absolute",
             bottom: 30,
             right: 20,
-            width: 60,
-            height: 60,
-            borderRadius: 30,
-            backgroundColor: "#007AFF",
-            justifyContent: "center",
-            alignItems: "center",
+            transform: pan.getTranslateTransform(),
           }}
         >
-          <Text style={{ color: "white", fontSize: 20 }}>AI</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={openChat}
+            activeOpacity={0.8}
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: 30,
+              backgroundColor: "#f57c00",
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <Text style={{ color: "white", fontSize: 20 }}>:D</Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       {chatOpen && (
@@ -190,7 +277,7 @@ export default function HomeLayout() {
                   alignSelf:
                     item.role === "user" ? "flex-end" : "flex-start",
                   backgroundColor:
-                    item.role === "user" ? "#007AFF" : "#E5E5EA",
+                    item.role === "user" ? "#f57c00" : "#E5E5EA",
                   padding: 10,
                   borderRadius: 10,
                   marginVertical: 4,
@@ -220,33 +307,18 @@ export default function HomeLayout() {
                 marginBottom: 5,
               }}
             >
-              <Animated.View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: "#555",
-                  transform: [{ translateY: dot1 }],
-                }}
-              />
-              <Animated.View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: "#555",
-                  transform: [{ translateY: dot2 }],
-                }}
-              />
-              <Animated.View
-                style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: "#555",
-                  transform: [{ translateY: dot3 }],
-                }}
-              />
+              {[dot1, dot2, dot3].map((dot, i) => (
+                <Animated.View
+                  key={i}
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: "#555",
+                    transform: [{ translateY: dot }],
+                  }}
+                />
+              ))}
             </View>
           )}
 
@@ -268,7 +340,7 @@ export default function HomeLayout() {
               onPress={sendMessage}
               style={{
                 marginLeft: 10,
-                backgroundColor: "#007AFF",
+                backgroundColor: "#f57c00",
                 paddingHorizontal: 15,
                 justifyContent: "center",
                 borderRadius: 10,
@@ -279,6 +351,6 @@ export default function HomeLayout() {
           </View>
         </Animated.View>
       )}
-    </View>
+    </>
   );
 }

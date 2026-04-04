@@ -7,19 +7,19 @@ import { Tabs } from 'expo-router';
 export default function TabLayout() {
   return (
     <Tabs
-      screenOptions={{
+     screenOptions={{
         headerShown: false, // hide stack headers inside tabs
       }}>
       <Tabs.Screen
-        name="home"
+        name="home" 
         options={{
           title: 'Home',
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="orders"
         options={{
-          title: 'Settings',
+          title: 'Orders',
         }}
       />
       <Tabs.Screen
