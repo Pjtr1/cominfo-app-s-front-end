@@ -69,7 +69,7 @@ export default function HomeLayout() {
         let newX = last.current.x + gesture.dx;
         let newY = last.current.y + gesture.dy;
 
-        // KEEP your original clamps
+        
         newX = Math.max(-maxX, Math.min(newX, 18));
         newY = Math.max(-maxY + 50, Math.min(newY, 30));
 
@@ -95,7 +95,7 @@ export default function HomeLayout() {
     })
   ).current;
 
-  // ✅ GET USER LOCATION
+  // GET USER LOCATION
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
