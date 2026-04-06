@@ -1,1 +1,1 @@
-export const API_BASE_URL = "https://peskier-enviable-wallace.ngrok-free.dev";
+export const API_BASE_URL = "https://cominfo-api-server.onrender.com";
