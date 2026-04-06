@@ -6,14 +6,14 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#f57c00",   // active icon color
+        tabBarActiveTintColor: "#f57c00", 
         tabBarInactiveTintColor: "gray"
       }}
     >
       <Tabs.Screen
-        name="home"
+        name="seller_restaurant"
         options={{
-          title: 'Home',
+          title: 'My Store',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}

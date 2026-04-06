@@ -1,19 +1,19 @@
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    Modal,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useUser } from "../../../../contexts/UserContext"; // make sure the path is correct
-
+import { API_BASE_URL } from "../../../../config/api";
+import { useUser } from "../../../../contexts/UserContext";
 type MenuItem = {
   id: number;
   name: string;
@@ -65,13 +65,13 @@ export default function MenuPage() {
   const fetchMenu = async () => {
     try {
       const res = await fetch(
-        `https://erratically-thermogenetic-landon.ngrok-free.dev/restaurants/${restaurantId}/menu`
+        `${API_BASE_URL}/restaurants/${restaurantId}/menu`
       );
       const data = await res.json();
       setMenu(data);
 
       const countRes = await fetch(
-        `https://erratically-thermogenetic-landon.ngrok-free.dev/restaurants/${restaurantId}/orders/active-count`
+        `${API_BASE_URL}/restaurants/${restaurantId}/orders/active-count`
       );
       const countData = await countRes.json();
       setActiveOrderCount(countData.active_order_count);
@@ -129,7 +129,7 @@ export default function MenuPage() {
     };
 
     try {
-      const res = await fetch("https://erratically-thermogenetic-landon.ngrok-free.dev/orders", {
+      const res = await fetch(`${API_BASE_URL}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)

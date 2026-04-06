@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
+import { API_BASE_URL } from "../../../../config/api";
 type Restaurant = {
   id: number;
   name: string;
@@ -43,7 +43,7 @@ export default function RestaurantsPage() {
 
   const fetchRestaurants = async () => {
     try {
-      let url = "https://erratically-thermogenetic-landon.ngrok-free.dev/restaurants";
+      let url = `${API_BASE_URL}/restaurants`;
       if (canteenId && canteenId !== "null") {
         url += `?canteen_id=${canteenId}`;
       }

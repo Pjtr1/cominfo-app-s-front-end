@@ -2,7 +2,7 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useUser } from "../../../contexts/UserContext";
+import { useUser } from "../../../contexts/UserContext"; // adjust path if needed
 
 export default function Profile() {
   const { user } = useUser();

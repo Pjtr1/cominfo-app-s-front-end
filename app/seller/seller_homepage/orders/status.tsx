@@ -1,18 +1,15 @@
 import { useLocalSearchParams } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
-import * as FileSystem from "expo-file-system/legacy";
-import * as Sharing from "expo-sharing";
 import { API_BASE_URL } from "../../../../config/api";
 
 type OrderStatus =
@@ -46,7 +43,7 @@ const STATUS_STEPS: OrderStatus[] = [
   "completed",
 ];
 
-export default function OrderStatusPage() {
+export default function SellerOrderStatusPage() {
   const { orderId, order } = useLocalSearchParams();
 
   const parsedOrder: Order = order ? JSON.parse(order as string) : null;
@@ -55,18 +52,12 @@ export default function OrderStatusPage() {
   const [paymentStatus, setPaymentStatus] =
     useState<PaymentStatus>("unpaid");
 
-  const [qrUrl, setQrUrl] = useState<string | null>(null);
-
   const [loading, setLoading] = useState(true);
-  const [qrLoading, setQrLoading] = useState(true);
-
-  const [paying, setPaying] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  const hasFetchedQR = useRef(false);
-
   const isCancelled = status === "cancelled";
-  const isPaid = paymentStatus === "paid";
+  const isCompleted = status === "completed";
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -76,7 +67,7 @@ export default function OrderStatusPage() {
         );
         const data = await res.json();
         setStatus(data.status);
-        setPaymentStatus(data.payment_status);
+        setPaymentStatus(data.payment_status); 
       } catch (err) {
         console.error("Status error:", err);
       } finally {
@@ -87,70 +78,37 @@ export default function OrderStatusPage() {
     fetchStatus();
   }, [orderId]);
 
-  useEffect(() => {
-    if (
-      !parsedOrder?.total_price ||
-      hasFetchedQR.current ||
-      isPaid ||
-      isCancelled
-    )
-      return;
+  const getNextStatus = () => {
+    const index = STATUS_STEPS.indexOf(status);
+    if (index === -1 || index === STATUS_STEPS.length - 1)
+      return null;
+    return STATUS_STEPS[index + 1];
+  };
 
-    const fetchQR = async () => {
-      try {
-        hasFetchedQR.current = true;
+  const updateStatus = async () => {
+    const nextStatus = getNextStatus();
+    if (!nextStatus) return;
 
-        const res = await fetch(`${API_BASE_URL}/promptpay/qr`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            amount: parsedOrder.total_price,
-          }),
-        });
-
-        const data = await res.json();
-        setQrUrl(data.qr_url);
-      } catch (err) {
-        console.error("QR error:", err);
-        hasFetchedQR.current = false;
-      } finally {
-        setQrLoading(false);
-      }
-    };
-
-    fetchQR();
-  }, [parsedOrder?.total_price, isPaid, isCancelled]);
-
-  const completePayment = async () => {
     try {
-      setPaying(true);
+      setUpdating(true);
 
       const res = await fetch(
         `${API_BASE_URL}/orders/${orderId}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            payment_status: "paid",
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: nextStatus }),
         }
       );
 
-      if (!res.ok) {
-        throw new Error("Payment failed");
-      }
+      if (!res.ok) throw new Error("Update failed");
 
-      setPaymentStatus("paid");
-      Alert.alert("Success", "Payment completed!");
+      setStatus(nextStatus);
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Failed to complete payment.");
+      Alert.alert("Error", "Failed to update status.");
     } finally {
-      setPaying(false);
+      setUpdating(false);
     }
   };
 
@@ -162,18 +120,12 @@ export default function OrderStatusPage() {
         `${API_BASE_URL}/orders/${orderId}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            status: "cancelled",
-          }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "cancelled" }),
         }
       );
 
-      if (!res.ok) {
-        throw new Error("Cancel failed");
-      }
+      if (!res.ok) throw new Error("Cancel failed");
 
       setStatus("cancelled");
       Alert.alert("Cancelled", "Order has been cancelled.");
@@ -185,29 +137,13 @@ export default function OrderStatusPage() {
     }
   };
 
-  const downloadQR = async () => {
-    if (!qrUrl) return;
-
-    try {
-      const fileUri = FileSystem.cacheDirectory + `qr_${orderId}.jpg`;
-      const downloaded = await FileSystem.downloadAsync(qrUrl, fileUri);
-      await Sharing.shareAsync(downloaded.uri);
-    } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to share QR.");
-    }
-  };
-
   const getStepIndex = () => STATUS_STEPS.indexOf(status);
 
   const renderStep = (step: OrderStatus, index: number) => {
     const currentIndex = getStepIndex();
 
-    // ✅ FIXED LOGIC
     const isDone =
-      status === "completed"
-        ? true
-        : index < currentIndex;
+      status === "completed" ? true : index < currentIndex;
 
     const isCurrent =
       status !== "completed" && index === currentIndex;
@@ -280,6 +216,7 @@ export default function OrderStatusPage() {
                 <Text style={styles.orderId}>
                   Order #{orderId}
                 </Text>
+
                 <Text
                   style={[
                     styles.statusText,
@@ -290,10 +227,13 @@ export default function OrderStatusPage() {
                 </Text>
               </View>
 
+              {/* PAYMENT STATUS */}
               <Text
                 style={[
                   styles.paymentStatus,
-                  isPaid ? styles.paid : styles.unpaid,
+                  paymentStatus === "paid"
+                    ? styles.paid
+                    : styles.unpaid,
                 ]}
               >
                 {paymentStatus.toUpperCase()}
@@ -304,33 +244,6 @@ export default function OrderStatusPage() {
           <View style={styles.timeline}>
             {STATUS_STEPS.map(renderStep)}
           </View>
-
-          {!isPaid && !isCancelled && (
-            <View style={styles.qrSection}>
-              <Text style={styles.sectionTitle}>Payment QR</Text>
-
-              {qrLoading ? (
-                <ActivityIndicator />
-              ) : qrUrl ? (
-                <>
-                  <Image source={{ uri: qrUrl }} style={styles.qrImage} />
-
-                  <TouchableOpacity
-                    style={styles.downloadBtn}
-                    onPress={downloadQR}
-                  >
-                    <Text style={styles.downloadText}>
-                      Share QR
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <Text style={{ color: "#888" }}>
-                  QR not available
-                </Text>
-              )}
-            </View>
-          )}
 
           <Text style={styles.sectionTitle}>Items</Text>
         </>
@@ -351,34 +264,32 @@ export default function OrderStatusPage() {
             Total: ฿{parsedOrder?.total_price.toFixed(2)}
           </Text>
 
-          {!isPaid && !isCancelled && (
-            <>
-              <TouchableOpacity
-                style={styles.payBtn}
-                onPress={completePayment}
-                disabled={paying}
-              >
-                <Text style={styles.payText}>
-                  {paying
-                    ? "Processing..."
-                    : "Complete Payment"}
-                </Text>
-              </TouchableOpacity>
+          {!isCompleted && !isCancelled && getNextStatus() && (
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={updateStatus}
+              disabled={updating}
+            >
+              <Text style={styles.primaryText}>
+                {updating
+                  ? "Updating..."
+                  : `Mark as ${getNextStatus()?.toUpperCase()}`}
+              </Text>
+            </TouchableOpacity>
+          )}
 
-              <View style={{ height: 12 }} />
+          <View style={{ height: 12 }} />
 
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={cancelOrder}
-                disabled={cancelling}
-              >
-                <Text style={styles.cancelText}>
-                  {cancelling
-                    ? "Cancelling..."
-                    : "Cancel Order"}
-                </Text>
-              </TouchableOpacity>
-            </>
+          {!isCompleted && !isCancelled && (
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={cancelOrder}
+              disabled={cancelling}
+            >
+              <Text style={styles.cancelText}>
+                {cancelling ? "Cancelling..." : "Cancel Order"}
+              </Text>
+            </TouchableOpacity>
           )}
         </>
       }
@@ -387,7 +298,6 @@ export default function OrderStatusPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   header: {
@@ -458,33 +368,6 @@ const styles = StyleSheet.create({
   disabledText: { color: "#aaa" },
   activeText: { color: "#FF6B00", fontSize: 12 },
 
-  qrSection: { alignItems: "center", marginTop: 10 },
-
-  qrImage: {
-    width: 180,
-    height: 180,
-    marginVertical: 10,
-    borderRadius: 12,
-  },
-
-  downloadBtn: {
-    backgroundColor: "#FF6B00",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-
-  downloadText: { color: "#fff", fontWeight: "bold" },
-
-  cancelBtn: {
-    backgroundColor: "red",
-    padding: 14,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-
-  cancelText: { color: "#fff", fontWeight: "bold" },
-
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
@@ -499,13 +382,22 @@ const styles = StyleSheet.create({
 
   total: { marginTop: 10, fontWeight: "bold" },
 
-  payBtn: {
+  primaryBtn: {
     marginTop: 10,
-    backgroundColor: "green",
+    backgroundColor: "#FF6B00",
     padding: 14,
     borderRadius: 10,
     alignItems: "center",
   },
 
-  payText: { color: "#fff", fontWeight: "bold" },
+  primaryText: { color: "#fff", fontWeight: "bold" },
+
+  cancelBtn: {
+    backgroundColor: "red",
+    padding: 14,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+
+  cancelText: { color: "#fff", fontWeight: "bold" },
 });

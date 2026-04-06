@@ -2,6 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -16,11 +17,13 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
+import { API_BASE_URL } from "../../config/api";
+import { useUser } from "../../contexts/UserContext";
 
 export default function CreateRestaurantScreen() {
+  const { user } = useUser(); // get user
+
   const [name, setName] = useState("");
-  const [ownerId, setOwnerId] = useState("");
-  const [paymentQrUrl, setPaymentQrUrl] = useState("");
   const [isOpen, setIsOpen] = useState(true);
 
   const [hasCanteen, setHasCanteen] = useState(false);
@@ -28,9 +31,10 @@ export default function CreateRestaurantScreen() {
 
   const [image, setImage] = useState<any>(null);
 
-  // Map picker
   const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [mapVisible, setMapVisible] = useState(false);
+
+  const [loading, setLoading] = useState(false);
 
   const canteens = [
     { id: 1, name: "Canteen A" },
@@ -39,7 +43,6 @@ export default function CreateRestaurantScreen() {
     { id: 4, name: "Canteen D" },
   ];
 
-  // Pick image from library
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -49,30 +52,42 @@ export default function CreateRestaurantScreen() {
     if (!result.canceled) setImage(result.assets[0]);
   };
 
-  // Submit form
   const handleSubmit = async () => {
     if (!name) {
       Alert.alert("Error", "Name is required");
       return;
     }
+
     if (!location) {
       Alert.alert("Error", "Please pick a location on the map");
       return;
     }
 
+    if (!user) {
+      Alert.alert("Error", "User not logged in");
+      return;
+    }
+
+    setLoading(true);
+
     const formData = new FormData();
     formData.append("name", name);
-    if (ownerId) formData.append("owner_id", ownerId);
+
+    // get get owner id from usercontext
+    formData.append("owner_id", String(user.id));
+
     formData.append("latitude", String(location.latitude));
     formData.append("longitude", String(location.longitude));
     formData.append("is_open", isOpen ? "true" : "false");
 
-    // Random utilization 0–100
     const randomUtil = Math.floor(Math.random() * 101);
     formData.append("utilization", String(randomUtil));
 
-    if (paymentQrUrl) formData.append("payment_qr_url", paymentQrUrl);
-    if (hasCanteen && canteenId) formData.append("canteen_id", String(canteenId));
+    // payment_qr_url intentionally not sent
+
+    if (hasCanteen && canteenId) {
+      formData.append("canteen_id", String(canteenId));
+    }
 
     if (image) {
       formData.append("image", {
@@ -83,11 +98,9 @@ export default function CreateRestaurantScreen() {
     }
 
     try {
-      const response = await fetch("https://erratically-thermogenetic-landon.ngrok-free.dev/restaurants", {
+      const response = await fetch(`${API_BASE_URL}/restaurants`, {
         method: "POST",
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
         body: formData,
       });
 
@@ -95,8 +108,15 @@ export default function CreateRestaurantScreen() {
       if (!response.ok) throw new Error(data.detail || "Something went wrong");
 
       Alert.alert("Success", "Restaurant created!");
+
+      router.push({
+        pathname: "/seller/seller_homepage/seller_restaurant",
+        params: { restaurant: JSON.stringify(data) },
+      });
     } catch (err: any) {
       Alert.alert("Error", err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -105,7 +125,6 @@ export default function CreateRestaurantScreen() {
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>KMITL CAFETERIAS</Text>
 
-        {/* Go back button */}
         <TouchableOpacity style={styles.goBackBtn} onPress={() => router.push("/")}>
           <Text style={{ color: "#f57c00", fontWeight: "600" }}>← Back to Login</Text>
         </TouchableOpacity>
@@ -117,34 +136,25 @@ export default function CreateRestaurantScreen() {
           <Text style={styles.label}>Restaurant Name *</Text>
           <TextInput style={styles.input} value={name} onChangeText={setName} />
 
-          <Text style={styles.label}>Owner ID</Text>
-          <TextInput
-            style={styles.input}
-            value={ownerId}
-            onChangeText={setOwnerId}
-            keyboardType="numeric"
-          />
+          {/* OWNER ID INPUT REMOVED */}
 
-          <Text style={styles.label}>Payment QR URL</Text>
-          <TextInput style={styles.input} value={paymentQrUrl} onChangeText={setPaymentQrUrl} />
-
-          {/* Map picker */}
           <TouchableOpacity style={styles.imageBtn} onPress={() => setMapVisible(true)}>
-            <Text style={{ color: "white" }}>{location ? "Change Location" : "Pick Location on Map"}</Text>
+            <Text style={{ color: "white" }}>
+              {location ? "Change Location" : "Pick Location on Map"}
+            </Text>
           </TouchableOpacity>
+
           {location && (
             <Text style={{ marginTop: 8, color: "#555" }}>
               Lat: {location.latitude.toFixed(4)}, Lng: {location.longitude.toFixed(4)}
             </Text>
           )}
 
-          {/* Open toggle */}
           <View style={styles.switchRow}>
             <Text>Open</Text>
             <Switch value={isOpen} onValueChange={setIsOpen} />
           </View>
 
-          {/* Canteen toggle */}
           <View style={styles.switchRow}>
             <Text>Inside a canteen?</Text>
             <Switch
@@ -163,24 +173,28 @@ export default function CreateRestaurantScreen() {
                 style={[styles.canteenOption, canteenId === c.id && styles.canteenSelected]}
                 onPress={() => setCanteenId(c.id)}
               >
-                <Text style={{ color: canteenId === c.id ? "#fff" : "#333" }}>{c.name}</Text>
+                <Text style={{ color: canteenId === c.id ? "#fff" : "#333" }}>
+                  {c.name}
+                </Text>
               </TouchableOpacity>
             ))}
 
-          {/* Image picker */}
           <TouchableOpacity style={styles.imageBtn} onPress={pickImage}>
             <Text style={{ color: "white" }}>Pick Image</Text>
           </TouchableOpacity>
+
           {image && <Image source={{ uri: image.uri }} style={styles.preview} />}
 
-          {/* Submit */}
-          <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-            <Text style={styles.buttonText}>Create →</Text>
+          <TouchableOpacity style={styles.button} onPress={handleSubmit} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Create →</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Map Modal */}
       <Modal visible={mapVisible}>
         <MapView
           style={{ flex: 1 }}
@@ -194,6 +208,7 @@ export default function CreateRestaurantScreen() {
         >
           {location && <Marker coordinate={location} />}
         </MapView>
+
         <TouchableOpacity style={styles.mapConfirm} onPress={() => setMapVisible(false)}>
           <Text style={{ color: "white" }}>Confirm Location</Text>
         </TouchableOpacity>
@@ -201,7 +216,6 @@ export default function CreateRestaurantScreen() {
     </KeyboardAvoidingView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,

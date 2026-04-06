@@ -1,7 +1,7 @@
-// UserContext.tsx
+
 import React, { createContext, ReactNode, useContext, useState } from "react";
 
-// 1️⃣ Define the User type
+// Define the User type
 interface User {
   id: number;
   username: string;
@@ -9,17 +9,17 @@ interface User {
   role: "customer" | "seller";
 }
 
-// 2️⃣ Define the context value type
+//  Define the context value type
 interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   logout: () => void;
 }
 
-// 3️⃣ Create context
+// Create context
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// 4️⃣ Provider component
+// Provider component
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
@@ -32,7 +32,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// 5️⃣ Hook to use the context
+// Hook to use the context
 export const useUser = (): UserContextType => {
   const context = useContext(UserContext);
   if (!context) throw new Error("useUser must be used within a UserProvider");

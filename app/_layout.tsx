@@ -21,11 +21,11 @@ export default function RootLayout() {
           name="signup"
           options={{
             headerTitle: "Sign Up",
-            headerShown: false, // hide header
+            headerShown: false, 
           }}
         />
 
-        <Stack.Screen name="homeplaceholder" />
+    
       </Stack>
     </UserProvider>
   );

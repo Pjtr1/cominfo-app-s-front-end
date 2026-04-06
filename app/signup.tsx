@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useUser } from "../contexts/UserContext"; // adjust path if needed
+import { API_BASE_URL } from "../config/api";
+import { useUser } from "../contexts/UserContext";
 
 export default function SignUpScreen() {
   const { setUser } = useUser();
@@ -28,17 +29,10 @@ export default function SignUpScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch("https://erratically-thermogenetic-landon.ngrok-free.dev/register", {
+      const response = await fetch(`${API_BASE_URL}/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username,
-          email,
-          password,
-          role, // include role in request body
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password, role }),
       });
 
       const data = await response.json();
@@ -48,7 +42,7 @@ export default function SignUpScreen() {
         return;
       }
 
-      // store user info in context
+      // Store user
       setUser({
         id: data.id,
         username: data.username,
@@ -56,13 +50,42 @@ export default function SignUpScreen() {
         role: data.role,
       });
 
-      // navigate based on role
-      if (data.role === "seller") {
-        router.replace("/seller");
-      } else {
+      // Customer flow
+      if (data.role === "customer") {
         router.replace("/customer/home");
+        return;
       }
 
+      // Seller flow
+      if (data.role === "seller") {
+        try {
+          const restaurantRes = await fetch(
+            `${API_BASE_URL}/users/${data.id}/restaurants`
+          );
+          const restaurants = await restaurantRes.json();
+
+          if (!restaurantRes.ok || restaurants.length === 0) {
+            // No restaurant → default seller page
+            router.replace("/seller");
+            return;
+          }
+
+          // Has restaurant → first one
+          const restaurant = restaurants[0];
+
+          // 🚀 Navigate using JSON string for params
+          router.replace({
+            pathname: "/seller/seller_homepage/seller_restaurant", // placeholder
+            params: { restaurant: JSON.stringify(restaurant) },
+          });
+        } catch (err) {
+          console.error("Restaurant fetch error:", err);
+          Alert.alert("Error", "Failed to load restaurant data");
+        }
+        return;
+      }
+
+      Alert.alert("Error", "Unknown user role");
     } catch (error) {
       Alert.alert("Error", "Something went wrong. Please try again.");
       console.error(error);
@@ -79,7 +102,6 @@ export default function SignUpScreen() {
         <Text style={styles.header}>Create Account</Text>
         <Text style={styles.subHeader}>Sign up for KMITL Food Services</Text>
 
-        {/* Username */}
         <Text style={styles.label}>Username</Text>
         <TextInput
           style={styles.input}
@@ -89,7 +111,6 @@ export default function SignUpScreen() {
           autoCapitalize="none"
         />
 
-        {/* Email */}
         <Text style={styles.label}>Email</Text>
         <TextInput
           style={styles.input}
@@ -99,7 +120,6 @@ export default function SignUpScreen() {
           autoCapitalize="none"
         />
 
-        {/* Password */}
         <Text style={styles.label}>Password</Text>
         <TextInput
           style={styles.input}
@@ -110,7 +130,6 @@ export default function SignUpScreen() {
           autoCapitalize="none"
         />
 
-        {/* Role picker */}
         <Text style={styles.label}>Role</Text>
         <View style={styles.roleContainer}>
           <TouchableOpacity
@@ -148,7 +167,6 @@ export default function SignUpScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Sign Up button */}
         <TouchableOpacity
           style={styles.button}
           onPress={handleSignup}
@@ -159,7 +177,6 @@ export default function SignUpScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* Login link */}
         <View style={{ flexDirection: "row", justifyContent: "center" }}>
           <Text style={styles.login}>Already have an account? </Text>
           <TouchableOpacity onPress={() => router.push("/")}>

@@ -1,4 +1,5 @@
-import * as Location from "expo-location"; // ✅ ADDED
+import { Ionicons } from '@expo/vector-icons';
+import * as Location from "expo-location";
 import { Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -11,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { API_BASE_URL } from "../../../../config/api";
 
 type Message = {
   id: string;
@@ -24,7 +26,7 @@ export default function HomeLayout() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
-  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null); // ✅ ADDED
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null); 
 
   const slideAnim = useRef(new Animated.Value(400)).current;
 
@@ -179,7 +181,7 @@ export default function HomeLayout() {
 
     try {
       const response = await fetch(
-        "https://erratically-thermogenetic-landon.ngrok-free.dev/ai/message",
+        `${API_BASE_URL}/ai/message`,
         {
           method: "POST",
           headers: {
@@ -187,8 +189,8 @@ export default function HomeLayout() {
           },
           body: JSON.stringify({
             message: userMessage.text,
-            latitude: coords?.latitude ?? 0,     // ✅ ADDED
-            longitude: coords?.longitude ?? 0,   // ✅ ADDED
+            latitude: coords?.latitude ?? 0,     
+            longitude: coords?.longitude ?? 0,   
           }),
         }
       );
@@ -241,7 +243,7 @@ export default function HomeLayout() {
               alignItems: "center",
             }}
           >
-            <Text style={{ color: "white", fontSize: 20 }}>:D</Text>
+            <Ionicons name="chatbubble-ellipses" size={28} color="white" />
           </TouchableOpacity>
         </Animated.View>
       )}

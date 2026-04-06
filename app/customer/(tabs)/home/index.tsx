@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
+import { API_BASE_URL } from "../../../../config/api";
 type Canteen = {
   id: number;
   name: string;
@@ -39,7 +39,7 @@ export default function HomePage() {
   const fetchCanteens = async () => {
     try {
       const res = await fetch(
-        "https://erratically-thermogenetic-landon.ngrok-free.dev/canteens"
+        `${API_BASE_URL}/canteens`
       );
       const data = await res.json();
       setCanteens(data);

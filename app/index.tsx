@@ -8,7 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// 👇 ADD UserContext
+
+import { API_BASE_URL } from "../config/api";
 import { useUser } from "../contexts/UserContext";
 
 export default function LoginScreen() {
@@ -16,7 +17,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const { setUser } = useUser(); // get setter from context
+  const { setUser } = useUser();
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -27,19 +28,11 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      const response = await fetch(
-        "https://erratically-thermogenetic-landon.ngrok-free.dev/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: username, // still using username field for input
-            password: password,
-          }),
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: username, password }),
+      });
 
       const data = await response.json();
 
@@ -48,7 +41,7 @@ export default function LoginScreen() {
         return;
       }
 
-      // ✅ Store full user info in context
+      // Store user in context
       setUser({
         id: data.id,
         username: data.username,
@@ -58,14 +51,43 @@ export default function LoginScreen() {
 
       console.log("Logged in user:", data);
 
-      // 👇 role-based navigation
+      // Customer flow
       if (data.role === "customer") {
         router.replace("/customer/home");
-      } else if (data.role === "seller") {
-        router.replace("/seller");
-      } else {
-        Alert.alert("Error", "Unknown user role");
+        return;
       }
+
+      // Seller flow
+      if (data.role === "seller") {
+        try {
+          const restaurantRes = await fetch(
+            `${API_BASE_URL}/users/${data.id}/restaurants`
+          );
+          const restaurants = await restaurantRes.json();
+
+          if (!restaurantRes.ok || restaurants.length === 0) {
+            // No restaurant -> default seller page
+            router.replace("/seller");
+            return;
+          }
+
+          // Has restaurant -> take the first one
+          const restaurant = restaurants[0];
+
+          // Navigate with params (JSON string for local search)
+          router.replace({
+            pathname: "/seller/seller_homepage/seller_restaurant",
+            params: { restaurant: JSON.stringify(restaurant) },
+          });
+        } catch (err) {
+          console.error("Restaurant fetch error:", err);
+          Alert.alert("Error", "Failed to load restaurant data");
+        }
+        return;
+      }
+
+      // Unknown role
+      Alert.alert("Error", "Unknown user role");
     } catch (error) {
       Alert.alert("Error", "Something went wrong. Please try again.");
       console.error(error);

@@ -1,8 +1,15 @@
-
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+    ActivityIndicator,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+
 import { API_BASE_URL } from "../../../../config/api";
 import { useUser } from "../../../../contexts/UserContext";
 
@@ -24,29 +31,61 @@ interface Order {
   order_items: OrderItem[];
 }
 
-export default function Orders() {
+interface Restaurant {
+  id: number;
+  name: string;
+  image_url: string;
+  canteen_id: number;
+  owner_id: number;
+  latitude: number;
+  longitude: number;
+  is_open: boolean;
+  utilization: number;
+  payment_qr_url: string;
+}
+
+export default function RestaurantOrders() {
   const { user } = useUser();
   const router = useRouter();
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // MOVE FETCH OUTSIDE
   const fetchOrders = async () => {
     if (!user) return;
 
     setLoading(true);
+
     try {
-      const response = await fetch(`${API_BASE_URL}/users/${user.id}/orders`);
-      const data = await response.json();
+      // Get restaurant(s) owned by user
+      const resRestaurant = await fetch(
+        `${API_BASE_URL}/users/${user.id}/restaurants`
+      );
+      const restaurants: Restaurant[] = await resRestaurant.json();
+
+      if (!restaurants || restaurants.length === 0) {
+        setOrders([]);
+        return;
+      }
+
+      // Take first restaurant
+      const restaurantId = restaurants[0].id;
+
+      // Fetch orders for that restaurant
+      const resOrders = await fetch(
+        `${API_BASE_URL}/restaurants/${restaurantId}/orders`
+      );
+      const data = await resOrders.json();
+
       setOrders(data);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      console.error("Error fetching restaurant orders:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // This runs everytime this tab is open
+  // Refresh every time screen is focused
   useFocusEffect(
     useCallback(() => {
       fetchOrders();
@@ -58,7 +97,7 @@ export default function Orders() {
       style={styles.card}
       onPress={() =>
         router.push({
-          pathname: "/customer/orders/status",
+          pathname: "/seller/seller_homepage/orders/status", 
           params: {
             orderId: item.id.toString(),
             order: JSON.stringify(item),
@@ -67,7 +106,10 @@ export default function Orders() {
       }
     >
       <Text style={styles.orderTitle}>Order #{item.id}</Text>
-      <Text style={styles.restaurantName}>{item.restaurant_name}</Text>
+
+      <Text style={styles.restaurantName}>
+        Customer ID: {item.customer_id}
+      </Text>
 
       <View style={styles.itemsContainer}>
         {item.order_items.map((oi) => (
@@ -77,9 +119,13 @@ export default function Orders() {
         ))}
       </View>
 
-      <Text style={styles.totalPrice}>Total: ฿{item.total_price.toFixed(2)}</Text>
+      <Text style={styles.totalPrice}>
+        Total: ฿{item.total_price.toFixed(2)}
+      </Text>
       <Text style={styles.status}>Status: {item.status}</Text>
-      <Text style={styles.date}>{new Date(item.created_at).toLocaleString()}</Text>
+      <Text style={styles.date}>
+        {new Date(item.created_at).toLocaleString()}
+      </Text>
     </TouchableOpacity>
   );
 
@@ -124,5 +170,9 @@ const styles = StyleSheet.create({
   totalPrice: { fontSize: 16, fontWeight: "500" },
   status: { fontSize: 14, color: "#f57c00" },
   date: { fontSize: 12, color: "#888", marginTop: 4 },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
