@@ -73,7 +73,7 @@ export default function SignUpScreen() {
           // Has restaurant → first one
           const restaurant = restaurants[0];
 
-          // 🚀 Navigate using JSON string for params
+          // Navigate using JSON string for params
           router.replace({
             pathname: "/seller/seller_homepage/seller_restaurant", // placeholder
             params: { restaurant: JSON.stringify(restaurant) },
