@@ -65,12 +65,12 @@ export default function SignUpScreen() {
           const restaurants = await restaurantRes.json();
 
           if (!restaurantRes.ok || restaurants.length === 0) {
-            // No restaurant → default seller page
+            // No restaurant -> default seller page
             router.replace("/seller");
             return;
           }
 
-          // Has restaurant → first one
+          // Has restaurant -> first one
           const restaurant = restaurants[0];
 
           // Navigate using JSON string for params
