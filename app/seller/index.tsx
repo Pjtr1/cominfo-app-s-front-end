@@ -37,10 +37,10 @@ export default function CreateRestaurantScreen() {
   const [loading, setLoading] = useState(false);
 
   const canteens = [
-    { id: 1, name: "Canteen A" },
-    { id: 2, name: "Canteen B" },
-    { id: 3, name: "Canteen C" },
-    { id: 4, name: "Canteen D" },
+    { id: 1, name: "โรงอาหารวิศวะ A" },
+    { id: 2, name: "โรงอาหารวิศวะ B" },
+    { id: 3, name: "โรงอาหารวิศวะ C" },
+    { id: 4, name: "โรงอาหารสถาปัต" },
   ];
 
   const pickImage = async () => {
